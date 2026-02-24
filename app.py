@@ -2,8 +2,9 @@
 app.py  GSA Graduate Student Symposium Submission.
 Run:  streamlit run app.py
 """
-
 import streamlit as st
+import re
+import latex2mathml.converter
 from docx_generator import generate_docx
 import config as C
 
@@ -104,6 +105,33 @@ def _file_too_large(f):
 
 def _esc(text):
     return (text or "").replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
+
+def _render_math(text):
+    """Parses text for latex equations and converts to MathML for HTML preview."""
+    if not text:
+        return ""
+    pattern = re.compile(r'(\$\$.*?\$\$|\$.*?\$)', re.DOTALL)
+    parts = re.split(pattern, text)
+    result = []
+    for part in parts:
+        if not part:
+            continue
+        if part.startswith('$$') and part.endswith('$$'):
+            try:
+                mathml = latex2mathml.converter.convert(part[2:-2].strip())
+                result.append(f"<div style='text-align:center; margin: 10px 0;'>{mathml}</div>")
+            except Exception:
+                result.append(_esc(part))
+        elif part.startswith('$') and part.endswith('$'):
+            try:
+                mathml = latex2mathml.converter.convert(part[1:-1].strip())
+                # ensure inline math gets wrapped carefully
+                result.append(mathml)
+            except Exception:
+                result.append(_esc(part))
+        else:
+            result.append(_esc(part))
+    return "".join(result)
 
 # ── Layout constants ──────────────────────────────────────────────────────────
 LAYOUT_TEXT_ONLY = f"Text only — single paragraph (max {C.ABSTRACT_MAX_WORDS_TOTAL} words)"
@@ -223,17 +251,17 @@ with left:
 # ════════════════════════════════════════════════════════════════════════════
 with right:
     # Build preview variables safely
-    _name    = _esc(student_name)   if 'student_name'     in dir() else ""
-    _topic   = _esc(research_topic) if 'research_topic'   in dir() else ""
-    _prog    = _esc(graduate_program) if 'graduate_program' in dir() else ""
-    _deg     = _esc(degree)         if 'degree'           in dir() else ""
-    _yr      = _esc(year)           if 'year'             in dir() else ""
-    _email   = _esc(contact_email)  if 'contact_email'    in dir() else ""
-    _adv     = _esc(advisor)        if 'advisor'          in dir() else ""
-    _goal    = _esc(career_goal)    if 'career_goal'      in dir() else ""
-    _sp      = _esc(sponsor)        if 'sponsor'          in dir() else ""
-    _p1      = _esc(abstract_p1)    if 'abstract_p1'      in dir() else ""
-    _p2      = _esc(abstract_p2)    if 'abstract_p2'      in dir() else ""
+    _name    = _render_math(student_name)   if 'student_name'     in dir() else ""
+    _topic   = _render_math(research_topic) if 'research_topic'   in dir() else ""
+    _prog    = _render_math(graduate_program) if 'graduate_program' in dir() else ""
+    _deg     = _render_math(degree)         if 'degree'           in dir() else ""
+    _yr      = _render_math(year)           if 'year'             in dir() else ""
+    _email   = _render_math(contact_email)  if 'contact_email'    in dir() else ""
+    _adv     = _render_math(advisor)        if 'advisor'          in dir() else ""
+    _goal    = _render_math(career_goal)    if 'career_goal'      in dir() else ""
+    _sp      = _render_math(sponsor)        if 'sponsor'          in dir() else ""
+    _p1      = _render_math(abstract_p1)    if 'abstract_p1'      in dir() else ""
+    _p2      = _render_math(abstract_p2)    if 'abstract_p2'      in dir() else ""
 
     # word count badge for preview header
     if is_two_paragraphs:
@@ -265,17 +293,17 @@ with right:
                 <div style="background:#e8ecf0;height:80px;border:1px solid #bbb;
                             display:flex;align-items:center;justify-content:center;
                             font-size:9px;color:#888">Figure 1</div>
-                <div class="fig-cap">""" + _esc(caption_1 or "") + """</div>
+                <div class="fig-cap">""" + _render_math(caption_1 or "") + """</div>
               </div>
               <div class="fig-col">
                 <div style="background:#e8ecf0;height:80px;border:1px solid #bbb;
                             display:flex;align-items:center;justify-content:center;
                             font-size:9px;color:#888">Figure 2</div>
-                <div class="fig-cap">""" + _esc(caption_2 or "") + """</div>
+                <div class="fig-cap">""" + _render_math(caption_2 or "") + """</div>
               </div>
             </div>"""
         else:
-            cap = _esc(caption_1 or caption_2 or "")
+            cap = _render_math(caption_1 or caption_2 or "")
             figs_html = """
             <div style="text-align:center;margin-top:10px">
               <div style="background:#e8ecf0;height:90px;border:1px solid #bbb;
