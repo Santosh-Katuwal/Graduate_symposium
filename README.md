@@ -1,4 +1,4 @@
-# Graduate Student Symposium Submission App
+# Graduate Student Report Preparation App
 
 A Streamlit-based web application for collecting and formatting student symposium submissions. The app enforces a strict one-page document limit and provides real-time previews for three different layout options.
 
@@ -12,6 +12,7 @@ A Streamlit-based web application for collecting and formatting student symposiu
 - **Strict One-Page Enforcement**: Uses an internal LaTeX (pdflatex) compilation check to ensure submissions fit on exactly one page before allowing downloads.
 - **Multi-format Export**: Generates both professional Word (DOCX) and PDF documents.
 - **Image Handling**: Automatically scales headshots and figures to maintain aspect ratio while fitting the page constraints. Supports high-resolution images up to 10MB.
+
 
 
 
