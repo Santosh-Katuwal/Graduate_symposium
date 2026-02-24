@@ -9,6 +9,7 @@ import zipfile
 import subprocess
 import shutil
 import tempfile
+import re
 from jinja2 import Environment, BaseLoader
 
 import config as C
@@ -30,9 +31,24 @@ def escape_latex(text: str) -> str:
         "~": "\\textasciitilde{}",
         "^": "\\textasciicircum{}",
     }
-    escaped = "".join(replacements.get(c, c) for c in text)
-    # Convert newlines to latex newlines
-    return escaped.replace("\n", "\\\\")
+    def _escape(s):
+        escaped = "".join(replacements.get(c, c) for c in s)
+        return escaped.replace("\n", "\\\\")
+
+    pattern = re.compile(r'(\$\$.*?\$\$|\$.*?\$)', re.DOTALL)
+    parts = re.split(pattern, text)
+    
+    result = []
+    for part in parts:
+        if not part:
+            continue
+        if part.startswith('$') and part.endswith('$'):
+            # Pass math blocks raw
+            result.append(part)
+        else:
+            result.append(_escape(part))
+            
+    return "".join(result)
 
 # The Jinja2 Template (matches exactly Template.tex but with variables)
 LATEX_TEMPLATE = r"""\documentclass[12pt]{article}

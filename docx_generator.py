@@ -4,6 +4,7 @@ the layout defined in Template.tex (headshot + info block, abstract, figures).
 """
 
 import io
+import re
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -11,6 +12,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml.ns import qn
 from PIL import Image
 
+import math2docx
 import config as C
 
 
@@ -23,6 +25,36 @@ def _apply(run, font_size=None, bold=False, italic=False):
     run.font.color.rgb = RGBColor.from_string(C.FONT_COLOR_HEX)
     run.bold = bold
     run.italic = italic
+
+
+def _add_parsed_text(paragraph, text, font_size=None, bold=False, italic=False):
+    """Parse text for $$...$$ and $...$ blocks and insert as MathML or regular text."""
+    if not text:
+        return
+    font_size = font_size or C.FONT_SIZE_BODY
+    pattern = re.compile(r'(\$\$.*?\$\$|\$.*?\$)', re.DOTALL)
+    parts = re.split(pattern, text)
+    
+    for part in parts:
+        if not part:
+            continue
+        if part.startswith('$$') and part.endswith('$$'):
+            math_str = part[2:-2].strip()
+            try:
+                math2docx.add_math(paragraph, math_str)
+            except Exception:
+                run = paragraph.add_run(part)
+                _apply(run, font_size=font_size, bold=bold, italic=italic)
+        elif part.startswith('$') and part.endswith('$'):
+            math_str = part[1:-1].strip()
+            try:
+                math2docx.add_math(paragraph, math_str)
+            except Exception:
+                run = paragraph.add_run(part)
+                _apply(run, font_size=font_size, bold=bold, italic=italic)
+        else:
+            run = paragraph.add_run(part)
+            _apply(run, font_size=font_size, bold=bold, italic=italic)
 
 
 def _set_cell_margins(cell, top=0, bottom=0, start=0, end=0):
@@ -192,16 +224,14 @@ def generate_docx(data: dict) -> io.BytesIO:
 
     # Paragraph 1 (required)
     abs1 = doc.add_paragraph()
-    run = abs1.add_run(data["abstract_p1"])
-    _apply(run)
+    _add_parsed_text(abs1, data["abstract_p1"])
     abs1.paragraph_format.first_line_indent = Inches(0)
     _para_spacing(abs1, after=C.SPACING_AFTER)
 
     # Paragraph 2 (optional)
     if data.get("abstract_p2", "").strip():
         abs2 = doc.add_paragraph()
-        run = abs2.add_run(data["abstract_p2"])
-        _apply(run)
+        _add_parsed_text(abs2, data["abstract_p2"])
         abs2.paragraph_format.first_line_indent = Inches(0)
         _para_spacing(abs2, after=C.SPACING_AFTER)
 
@@ -243,8 +273,9 @@ def generate_docx(data: dict) -> io.BytesIO:
                 cap_p = cap_cell.paragraphs[0]
                 cap_p.alignment = WD_ALIGN_PARAGRAPH.LEFT
                 caption_text = data.get(cap_key, "")
-                run = cap_p.add_run(f"Figure {idx + 1}. {caption_text}")
-                _apply(run, font_size=C.FONT_SIZE_CAPTION, italic=True)
+                
+                _add_parsed_text(cap_p, f"Figure {idx + 1}. ", font_size=C.FONT_SIZE_CAPTION, italic=True)
+                _add_parsed_text(cap_p, caption_text, font_size=C.FONT_SIZE_CAPTION, italic=True)
 
         else:
             # Single figure — centered

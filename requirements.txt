@@ -2,3 +2,6 @@ streamlit
 python-docx
 Pillow
 jinja2
+math2docx
+mathml2omml
+latex2mathml
