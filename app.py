@@ -135,7 +135,7 @@ with left:
     c1, c2 = st.columns(2)
     with c1:
         student_name     = st.text_input("Full Name *",         placeholder="e.g., Jane Doe")
-        graduate_program = st.text_input("Graduate Program *",  placeholder="e.g., Civil Eng.")
+        graduate_program = st.text_input("Graduate Program *",  placeholder="e.g., Geotechnical Engineering")
         degree           = st.selectbox("Degree *",             ["MS", "PhD"])
         year             = st.text_input("Graduation Year *",   placeholder="2026")
     with c2:
