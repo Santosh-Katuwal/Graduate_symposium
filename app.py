@@ -107,8 +107,30 @@ def _esc(text):
     return (text or "").replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
 
 def _render_math(text):
-    """Pass text through. Streamlit st.markdown handles $x$ natively via MathJax."""
-    return _esc(text)
+    """Parses text for latex equations and converts to MathML for HTML preview."""
+    if not text:
+        return ""
+    pattern = re.compile(r'(\$\$.*?\$\$|\$.*?\$)', re.DOTALL)
+    parts = re.split(pattern, text)
+    result = []
+    for part in parts:
+        if not part:
+            continue
+        if part.startswith('$$') and part.endswith('$$'):
+            try:
+                mathml = latex2mathml.converter.convert(part[2:-2].strip())
+                result.append(f"<div style='text-align:center; margin: 10px 0;'>{mathml}</div>")
+            except Exception:
+                result.append(_esc(part))
+        elif part.startswith('$') and part.endswith('$'):
+            try:
+                mathml = latex2mathml.converter.convert(part[1:-1].strip())
+                result.append(mathml)
+            except Exception:
+                result.append(_esc(part))
+        else:
+            result.append(_esc(part))
+    return "".join(result)
 
 # ── Layout constants ──────────────────────────────────────────────────────────
 LAYOUT_TEXT_ONLY = f"Text only — single paragraph (max {C.ABSTRACT_MAX_WORDS_TOTAL} words)"
@@ -227,18 +249,18 @@ with left:
 #  RIGHT COLUMN — live document preview
 # ════════════════════════════════════════════════════════════════════════════
 with right:
-    # Build preview variables safely - Keep latex strings intact for MathJax
-    _name    = (student_name)   if 'student_name'     in dir() else ""
-    _topic   = (research_topic) if 'research_topic'   in dir() else ""
-    _prog    = (graduate_program) if 'graduate_program' in dir() else ""
-    _deg     = (degree)         if 'degree'           in dir() else ""
-    _yr      = (year)           if 'year'             in dir() else ""
-    _email   = (contact_email)  if 'contact_email'    in dir() else ""
-    _adv     = (advisor)        if 'advisor'          in dir() else ""
-    _goal    = (career_goal)    if 'career_goal'      in dir() else ""
-    _sp      = (sponsor)        if 'sponsor'          in dir() else ""
-    _p1      = (abstract_p1)    if 'abstract_p1'      in dir() else ""
-    _p2      = (abstract_p2)    if 'abstract_p2'      in dir() else ""
+    # Build preview variables safely - Inject MathML where appropriate
+    _name    = _render_math(student_name)   if 'student_name'     in dir() else ""
+    _topic   = _render_math(research_topic) if 'research_topic'   in dir() else ""
+    _prog    = _render_math(graduate_program) if 'graduate_program' in dir() else ""
+    _deg     = _render_math(degree)         if 'degree'           in dir() else ""
+    _yr      = _render_math(year)           if 'year'             in dir() else ""
+    _email   = _render_math(contact_email)  if 'contact_email'    in dir() else ""
+    _adv     = _render_math(advisor)        if 'advisor'          in dir() else ""
+    _goal    = _render_math(career_goal)    if 'career_goal'      in dir() else ""
+    _sp      = _render_math(sponsor)        if 'sponsor'          in dir() else ""
+    _p1      = _render_math(abstract_p1)    if 'abstract_p1'      in dir() else ""
+    _p2      = _render_math(abstract_p2)    if 'abstract_p2'      in dir() else ""
 
     # word count badge for preview header
     if is_two_paragraphs:
@@ -270,17 +292,17 @@ with right:
                 <div style="background:#e8ecf0;height:80px;border:1px solid #bbb;
                             display:flex;align-items:center;justify-content:center;
                             font-size:9px;color:#888">Figure 1</div>
-                <div class="fig-cap">""" + (caption_1 or "") + """</div>
+                <div class="fig-cap">""" + _render_math(caption_1 or "") + """</div>
               </div>
               <div class="fig-col">
                 <div style="background:#e8ecf0;height:80px;border:1px solid #bbb;
                             display:flex;align-items:center;justify-content:center;
                             font-size:9px;color:#888">Figure 2</div>
-                <div class="fig-cap">""" + (caption_2 or "") + """</div>
+                <div class="fig-cap">""" + _render_math(caption_2 or "") + """</div>
               </div>
             </div>"""
         else:
-            cap = (caption_1 or caption_2 or "")
+            cap = _render_math(caption_1 or caption_2 or "")
             figs_html = """
             <div style="text-align:center;margin-top:10px">
               <div style="background:#e8ecf0;height:90px;border:1px solid #bbb;
@@ -317,7 +339,7 @@ with right:
       </div>
     </div>
     """
-    st.markdown(preview_html, unsafe_allow_html=True)
+    st.html(preview_html)
 
 # ════════════════════════════════════════════════════════════════════════════
 #  Post-submit validation & generation
